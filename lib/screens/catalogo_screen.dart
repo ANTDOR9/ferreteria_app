@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'carrito_screen.dart';
 
 class CatalogoScreen extends StatefulWidget {
   final String rol;
@@ -46,7 +47,7 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${producto['nombre']} agregado al carrito'),
+        content: Text('${producto['nombre']} agregado'),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -75,14 +76,24 @@ class _CatalogoScreenState extends State<CatalogoScreen> {
             children: [
               IconButton(
                 icon: const Icon(Icons.shopping_cart_outlined, color: Color(0xFF1A3A6B)),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CarritoScreen(carrito: _carrito),
+                    ),
+                  );
+                },
               ),
               if (_carrito.isNotEmpty)
                 Positioned(
                   right: 6, top: 6,
                   child: Container(
                     width: 16, height: 16,
-                    decoration: const BoxDecoration(color: Color(0xFFE24B4A), shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE24B4A),
+                      shape: BoxShape.circle,
+                    ),
                     child: Text('${_carrito.length}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.white, fontSize: 10),
