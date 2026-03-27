@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../database/database_helper.dart';
 
 class CarritoScreen extends StatefulWidget {
   final List<Map<String, dynamic>> carrito;
@@ -14,16 +15,18 @@ class _CarritoScreenState extends State<CarritoScreen> {
   @override
   void initState() {
     super.initState();
-    _items = List.from(widget.carrito);
+    _items = widget.carrito.map((p) => Map<String, dynamic>.from(p)).toList();
   }
 
-  double get _subtotal => _items.fold(0, (sum, p) => sum + p['precio'] * p['cantidad']);
+  double get _subtotal => _items.fold(0.0, (sum, p) =>
+      sum + (p['precio_venta'] as num).toDouble() * (p['cantidad'] as num).toInt());
   double get _igv => _subtotal * 0.18;
   double get _total => _subtotal + _igv;
 
   void _cambiarCantidad(int idx, int delta) {
     setState(() {
-      _items[idx]['cantidad'] += delta;
+      final cantidadActual = (_items[idx]['cantidad'] as num).toInt();
+      _items[idx]['cantidad'] = cantidadActual + delta;
       if (_items[idx]['cantidad'] <= 0) _items.removeAt(idx);
     });
   }
@@ -61,6 +64,8 @@ class _CarritoScreenState extends State<CarritoScreen> {
                     itemCount: _items.length,
                     itemBuilder: (context, i) {
                       final p = _items[i];
+                      final precio = (p['precio_venta'] as num).toDouble();
+                      final cantidad = (p['cantidad'] as num).toInt();
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
@@ -79,7 +84,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                   ),
                                   const SizedBox(height: 2),
-                                  Text('S/ ${p['precio'].toStringAsFixed(2)} c/u',
+                                  Text('S/ ${precio.toStringAsFixed(2)} c/u',
                                     style: const TextStyle(fontSize: 11, color: Color(0xFF888780)),
                                   ),
                                 ],
@@ -100,7 +105,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text('${p['cantidad']}',
+                                  child: Text('$cantidad',
                                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                                   ),
                                 ),
@@ -118,7 +123,7 @@ class _CarritoScreenState extends State<CarritoScreen> {
                               ],
                             ),
                             const SizedBox(width: 12),
-                            Text('S/ ${(p['precio'] * p['cantidad']).toStringAsFixed(2)}',
+                            Text('S/ ${(precio * cantidad).toStringAsFixed(2)}',
                               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1A3A6B)),
                             ),
                           ],
@@ -166,23 +171,28 @@ class _CarritoScreenState extends State<CarritoScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _items.isEmpty ? null : () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: const Text('Venta confirmada'),
-                                content: Text('Total cobrado: S/ ${_total.toStringAsFixed(2)}'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text('Aceptar'),
-                                  ),
-                                ],
-                              ),
+                          onPressed: _items.isEmpty ? null : () async {
+                            await DatabaseHelper.instancia.registrarVenta(
+                              _total, _igv, 'efectivo', _items,
                             );
+                            if (context.mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text('Venta confirmada'),
+                                  content: Text('Total: S/ ${_total.toStringAsFixed(2)}'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        Navigator.pop(context);
+                                      },
+                                      child: const Text('Aceptar'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1D6A5A),
